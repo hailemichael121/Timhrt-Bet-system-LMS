@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const supabase = supabase.createClient(
+        "https://jvzdwxzslbxlcdiftxha.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2emR3eHpzbGJ4bGNkaWZ0eGhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MjEzMTgsImV4cCI6MjA2MjE5NzMxOH0.vw4ykz2uKtIxQwzqJ9jN4f0xLzwnqsVNrxxfektIZ2g"
+      );
+
+      async function login() {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          alert("Login failed: " + error.message);
+        } else {
+          alert("Logged in as: " + data.user.email);
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Login Test</h1>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </body>
+</html>
