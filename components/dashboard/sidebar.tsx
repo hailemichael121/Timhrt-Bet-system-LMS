@@ -22,6 +22,33 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import BookLogo from "../BookLogo";
 
+// Define types for your notifications and profile
+type Notification = {
+  id: string;
+  user_id: string;
+  read: boolean;
+  // Add other notification fields as needed
+};
+
+type Profile = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: "student" | "teacher" | "admin";
+  student_id?: string;
+  avatar_url?: string;
+  onboarding_completed: boolean;
+  last_login?: string;
+};
+
+type NavItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: boolean;
+};
+
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { user, profile } = useCurrentUser();
@@ -29,57 +56,48 @@ export function DashboardSidebar() {
   const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      fetchUnreadNotifications();
-      const subscription = supabase
-        .channel("notifications")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notifications",
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            fetchUnreadNotifications();
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "notifications",
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            fetchUnreadNotifications();
-          }
-        )
-        .subscribe();
+    if (!user?.id) return;
 
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }
+    const fetchUnreadNotifications = async () => {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+
+      if (error) {
+        console.error("Error fetching notifications:", error);
+        return;
+      }
+
+      setUnreadNotifications(count || 0);
+    };
+
+    fetchUnreadNotifications();
+
+    const subscription = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchUnreadNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [user]);
 
-  const fetchUnreadNotifications = async () => {
-    if (!user) return;
-    const { count, error } = await supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("read", false);
-
-    if (!error && count !== null) {
-      setUnreadNotifications(count);
-    }
-  };
-
-  // Define routes based on user role
-  const studentRoutes = [
+  // Define routes with proper typing
+  const studentRoutes: NavItem[] = [
     {
       name: "Dashboard",
       href: "/dashboard",
@@ -117,7 +135,7 @@ export function DashboardSidebar() {
     },
   ];
 
-  const teacherRoutes = [
+  const teacherRoutes: NavItem[] = [
     {
       name: "Dashboard",
       href: "/dashboard",
@@ -165,7 +183,7 @@ export function DashboardSidebar() {
     },
   ];
 
-  const adminRoutes = [
+  const adminRoutes: NavItem[] = [
     {
       name: "Dashboard",
       href: "/dashboard",
@@ -204,7 +222,6 @@ export function DashboardSidebar() {
     },
   ];
 
-  // Determine which routes to show based on user role
   const routes =
     user?.role === "admin"
       ? adminRoutes
@@ -212,7 +229,7 @@ export function DashboardSidebar() {
       ? teacherRoutes
       : studentRoutes;
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string) => {
     if (!name) return "U";
     return name
       .split(" ")
@@ -293,12 +310,12 @@ export function DashboardSidebar() {
           )}
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || ""} />
+            <AvatarImage src={profile?.avatarURL} />
             <AvatarFallback>
               {getInitials(
                 profile?.first_name && profile?.last_name
                   ? `${profile.first_name} ${profile.last_name}`
-                  : user?.email || "User"
+                  : user?.email
               )}
             </AvatarFallback>
           </Avatar>

@@ -10,6 +10,11 @@ interface Profile {
   id: string;
   first_name: string;
   last_name: string;
+  student_id?: string;
+  avatar_url?: string;
+  department: string;
+  code: string;
+  credits: number;
   email: string;
   role: string;
   onboarding_completed: boolean;
@@ -19,6 +24,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -43,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const router = useRouter();
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: String) => {
     try {
       const { data, error } = await supabase
         .from("profiles")

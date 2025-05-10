@@ -1,23 +1,15 @@
-// RootLayout.tsx
-
-import type React from "react";
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/lib/auth-provider";
 import { GlobalLoading } from "@/components/ui/global-loading";
-import { ThemeToggle } from "@/components/theme-toggle"; // 🆕 import the new toggle
 import { Suspense } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { MockAuthProvider } from "@/context/MockAuthProvider";
+import { SafeAuthWrapper } from "@/components/SafeAuthWrapper"; // 🔁 updated
 import ogImage from "@/public/book-logo-dark.png";
 import favicon from "@/public/book-logo-light.png";
-
-// app/layout.tsx
-const AuthWrapper =
-  process.env.NODE_ENV === "development" ? MockAuthProvider : AuthProvider;
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -74,12 +66,11 @@ export default function RootLayout({
       <body className={`${poppins.variable} ${inter.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Suspense fallback={<LoadingSpinner />}>
-            <AuthWrapper>
+            <SafeAuthWrapper>
               <GlobalLoading />
-              {/* Main content */}
               {children}
               <Toaster />
-            </AuthWrapper>
+            </SafeAuthWrapper>
           </Suspense>
         </ThemeProvider>
       </body>
