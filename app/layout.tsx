@@ -8,8 +8,8 @@ import { GlobalLoading } from "@/components/ui/global-loading";
 import { Suspense } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SafeAuthWrapper } from "@/components/SafeAuthWrapper"; // 🔁 updated
-import ogImage from "@/public/book-logo-dark.png";
 import favicon from "@/public/book-logo-light.png";
+import TimhrtbetOgImage from "@/public/TimhrtbetOgImage.png";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -26,19 +26,19 @@ export const metadata: Metadata = {
   title: "ትምህርት ቤት - Student Management System",
   description: "A comprehensive platform for educational institutions",
   icons: {
-    icon: favicon.src,
-    shortcut: favicon.src,
-    apple: favicon.src,
+    icon: TimhrtbetOgImage.src,
+    shortcut: TimhrtbetOgImage.src,
+    apple: TimhrtbetOgImage.src,
   },
-  metadataBase: new URL("https://scholarsphere.vercel.app"),
+  metadataBase: new URL("https://timhrtbet.vercel.app/"),
   openGraph: {
     title: "ትምህርት ቤት - Student Management System",
     description: "A comprehensive platform for educational institutions",
-    url: "https://scholarsphere.vercel.app",
+    url: "https://timhrtbet.vercel.app/",
     siteName: "ትምህርት ቤት",
     images: [
       {
-        url: ogImage.src,
+        url: TimhrtbetOgImage.src,
         width: 1200,
         height: 630,
       },
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ትምህርት ቤት - Student Management System",
     description: "A comprehensive platform for educational institutions",
-    images: [ogImage.src],
+    images: [TimhrtbetOgImage.src],
     creator: "@scholarsphere",
     site: "@scholarsphere",
   },
