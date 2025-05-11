@@ -1,54 +1,68 @@
-import { notFound, redirect } from "next/navigation"
-import { cookies } from "next/headers"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { PageTitle } from "@/components/page-title"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
-import { AddCourseMaterialForm } from "@/components/courses/add-course-material-form"
+import type { Metadata } from "next";
+import { PageTitle } from "@/components/page-title";
+import { AddCourseMaterialForm } from "@/components/courses/add-course-material-form";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default async function AddCourseMaterialPage({ params }: { params: { id: string } }) {
-  const cookieStore = cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+export const metadata: Metadata = {
+  title: "Add Course Material",
+  description: "Add a new material to your course",
+};
 
+interface AddCourseMaterialPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default async function AddCourseMaterialPage({
+  params,
+}: AddCourseMaterialPageProps) {
+  const supabase = createServerComponentClient({ cookies });
+
+  // Check if user is authenticated
   const {
     data: { session },
-  } = await supabase.auth.getSession()
-
+  } = await supabase.auth.getSession();
   if (!session) {
-    return null // Will be handled by middleware
+    redirect("/login");
   }
 
-  // Fetch course details
-  const { data: course, error } = await supabase.from("courses").select("*").eq("id", params.id).single()
+  // Check if user is a teacher or admin
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", session.user.id)
+    .single();
 
-  if (error || !course) {
-    notFound()
+  if (!profile || (profile.role !== "teacher" && profile.role !== "admin")) {
+    redirect("/dashboard");
   }
 
-  // Get user role
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", session.user.id).single()
+  // Check if course exists
+  const { data: course } = await supabase
+    .from("courses")
+    .select("title")
+    .eq("id", params.id)
+    .single();
 
-  const isAdmin = profile?.role === "admin"
-  const isInstructor = course.teacher_id === session.user.id
-
-  // Only admin or course instructor can add materials
-  if (!isAdmin && !isInstructor) {
-    redirect(`/dashboard/courses/${params.id}`)
+  if (!course) {
+    redirect("/dashboard/courses");
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href={`/dashboard/courses/${params.id}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <PageTitle title="Add Course Material" description={`Add learning materials to ${course.title}`} />
-      </div>
+      <PageTitle
+        title="Add Course Material"
+        description={`Upload a new resource for ${course.title}`}
+        backButton={{
+          href: `/dashboard/courses/${params.id}`,
+          label: "Back to Course",
+        }}
+      />
 
       <AddCourseMaterialForm courseId={params.id} />
     </div>
-  )
+  );
 }

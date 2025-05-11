@@ -1,68 +1,87 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { FileUpload } from "@/components/file-upload"
-import { useCurrentUser } from "@/hooks/use-current-user"
-import { supabase } from "@/lib/supabase/client"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { toast } from "@/components/ui/use-toast"
-import { motion } from "framer-motion"
-import { format, isPast } from "date-fns"
-import { FileText, Clock, CheckCircle, AlertTriangle, Download, Upload } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { FileUpload } from "@/components/ui/file-upload";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { supabase } from "@/lib/supabase/client";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { toast } from "@/components/ui/use-toast";
+import { motion } from "framer-motion";
+import { format, isPast } from "date-fns";
+import {
+  FileText,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Download,
+  Upload,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 interface AssignmentSubmissionProps {
-  assignmentId: string
+  assignmentId: string;
 }
 
-export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps) {
-  const { user } = useCurrentUser()
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [assignment, setAssignment] = useState<any>(null)
-  const [submission, setSubmission] = useState<any>(null)
-  const [content, setContent] = useState("")
-  const [fileUrl, setFileUrl] = useState<string | null>(null)
-  const [fileName, setFileName] = useState<string | null>(null)
+export function AssignmentSubmission({
+  assignmentId,
+}: AssignmentSubmissionProps) {
+  const { user } = useCurrentUser();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [assignment, setAssignment] = useState<any>(null);
+  const [submission, setSubmission] = useState<any>(null);
+  const [content, setContent] = useState("");
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileSize, setFileSize] = useState<number | null>(null);
+  const [fileType, setFileType] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-      fetchAssignmentAndSubmission()
+      fetchAssignmentAndSubmission();
     }
-  }, [user, assignmentId])
+  }, [user, assignmentId]);
 
   const fetchAssignmentAndSubmission = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
 
       // Fetch assignment details
       const { data: assignmentData, error: assignmentError } = await supabase
         .from("assignments")
-        .select(`
+        .select(
+          `
           id, 
           title, 
           description, 
           due_date, 
-          points,
+          points_possible,
           file_url,
-          file_name,
           course_id,
           courses (
             id,
             title,
             code
           )
-        `)
+        `
+        )
         .eq("id", assignmentId)
-        .single()
+        .single();
 
-      if (assignmentError) throw assignmentError
+      if (assignmentError) throw assignmentError;
 
-      setAssignment(assignmentData)
+      setAssignment(assignmentData);
 
       // Fetch existing submission if any
       const { data: submissionData, error: submissionError } = await supabase
@@ -70,83 +89,104 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
         .select("*")
         .eq("assignment_id", assignmentId)
         .eq("student_id", user?.id)
-        .maybeSingle()
+        .maybeSingle();
 
-      if (submissionError) throw submissionError
+      if (submissionError) throw submissionError;
 
       if (submissionData) {
-        setSubmission(submissionData)
-        setContent(submissionData.content || "")
-        setFileUrl(submissionData.file_url || null)
-        setFileName(submissionData.file_name || null)
+        setSubmission(submissionData);
+        setContent(submissionData.content || "");
+        setFileUrl(submissionData.file_url || null);
+        setFileName(submissionData.file_name || null);
+        setFileSize(submissionData.file_size || null);
+        setFileType(submissionData.file_type || null);
       }
     } catch (error) {
-      console.error("Error fetching assignment data:", error)
+      console.error("Error fetching assignment data:", error);
       toast({
         title: "Error",
         description: "Failed to load assignment details",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleFileUploadComplete = (url: string, name: string) => {
-    setFileUrl(url)
-    setFileName(name)
+  const handleFileUploadComplete = (
+    url: string,
+    name: string,
+    size: number,
+    type: string
+  ) => {
+    setFileUrl(url);
+    setFileName(name);
+    setFileSize(size);
+    setFileType(type);
     toast({
       title: "File uploaded",
       description: `${name} has been uploaded successfully`,
-    })
-  }
+    });
+  };
 
   const handleSubmit = async () => {
-    if (!user || !assignment) return
+    if (!user || !assignment) return;
 
     try {
-      setSubmitting(true)
+      setSubmitting(true);
 
-      const isDueDatePassed = assignment.due_date ? isPast(new Date(assignment.due_date)) : false
+      const isDueDatePassed = assignment.due_date
+        ? isPast(new Date(assignment.due_date))
+        : false;
       const submissionData = {
         assignment_id: assignmentId,
         student_id: user.id,
         content,
         file_url: fileUrl,
         file_name: fileName,
+        file_size: fileSize,
+        file_type: fileType,
         submitted_at: new Date().toISOString(),
         late: isDueDatePassed,
-      }
+      };
 
       if (submission) {
         // Update existing submission
-        const { error } = await supabase.from("submissions").update(submissionData).eq("id", submission.id)
+        const { error } = await supabase
+          .from("submissions")
+          .update(submissionData)
+          .eq("id", submission.id);
 
-        if (error) throw error
+        if (error) throw error;
 
         setSubmission({
           ...submission,
           ...submissionData,
-        })
+        });
 
         toast({
           title: "Submission updated",
-          description: "Your assignment submission has been updated successfully",
-        })
+          description:
+            "Your assignment submission has been updated successfully",
+        });
       } else {
         // Create new submission
-        const { data, error } = await supabase.from("submissions").insert(submissionData).select().single()
+        const { data, error } = await supabase
+          .from("submissions")
+          .insert(submissionData)
+          .select()
+          .single();
 
-        if (error) throw error
+        if (error) throw error;
 
-        setSubmission(data)
+        setSubmission(data);
 
         // Create notification for the instructor
         const { data: courseData, error: courseError } = await supabase
           .from("courses")
           .select("instructor_id")
           .eq("id", assignment.course_id)
-          .single()
+          .single();
 
         if (!courseError && courseData) {
           await supabase.from("notifications").insert({
@@ -157,32 +197,32 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
             read: false,
             link: `/dashboard/submissions/${data.id}`,
             related_id: data.id,
-          })
+          });
         }
 
         toast({
           title: "Submission successful",
           description: "Your assignment has been submitted successfully",
-        })
+        });
       }
     } catch (error: any) {
-      console.error("Error submitting assignment:", error.message)
+      console.error("Error submitting assignment:", error.message);
       toast({
         title: "Error",
         description: "Failed to submit assignment",
         variant: "destructive",
-      })
+      });
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner text="Loading assignment details..." />
       </div>
-    )
+    );
   }
 
   if (!assignment) {
@@ -190,16 +230,26 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
       <div className="text-center py-8">
         <AlertTriangle className="h-12 w-12 mx-auto text-amber-500 mb-4" />
         <h3 className="text-lg font-medium">Assignment not found</h3>
-        <p className="text-muted-foreground">The assignment you're looking for doesn't exist or has been removed.</p>
+        <p className="text-muted-foreground">
+          The assignment you're looking for doesn't exist or has been removed.
+        </p>
       </div>
-    )
+    );
   }
 
-  const isDueDatePassed = assignment.due_date ? isPast(new Date(assignment.due_date)) : false
-  const isGraded = submission?.grade !== null && submission?.grade !== undefined
+  const isDueDatePassed = assignment.due_date
+    ? isPast(new Date(assignment.due_date))
+    : false;
+  const isGraded =
+    submission?.grade !== null && submission?.grade !== undefined;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -212,7 +262,10 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
-                Due: {assignment.due_date ? format(new Date(assignment.due_date), "PPP 'at' p") : "No due date"}
+                Due:{" "}
+                {assignment.due_date
+                  ? format(new Date(assignment.due_date), "PPP 'at' p")
+                  : "No due date"}
               </span>
               {isDueDatePassed && !submission && (
                 <Badge variant="destructive" className="ml-2">
@@ -222,14 +275,21 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
               {submission && (
                 <Badge
                   variant={submission.late ? "outline" : "secondary"}
-                  className={submission.late ? "bg-amber-50 text-amber-700 border-amber-200" : ""}
+                  className={
+                    submission.late
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : ""
+                  }
                 >
                   {submission.late ? "Submitted Late" : "Submitted"}
                 </Badge>
               )}
               {isGraded && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  Graded: {submission.grade}/{assignment.points}
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200"
+                >
+                  Graded: {submission.grade}/{assignment.points_possible}
                 </Badge>
               )}
             </div>
@@ -273,15 +333,20 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Grade:</span>
                     <span className="text-lg font-bold">
-                      {submission.grade}/{assignment.points} (
-                      {((submission.grade / assignment.points) * 100).toFixed(1)}
+                      {submission.grade}/{assignment.points_possible} (
+                      {(
+                        (submission.grade / assignment.points_possible) *
+                        100
+                      ).toFixed(1)}
                       %)
                     </span>
                   </div>
                   {submission.feedback && (
                     <div>
                       <span className="font-medium">Instructor Feedback:</span>
-                      <p className="mt-1 whitespace-pre-wrap">{submission.feedback}</p>
+                      <p className="mt-1 whitespace-pre-wrap">
+                        {submission.feedback}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -317,7 +382,10 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
             <div className="mt-6 space-y-4">
               <h3 className="text-lg font-medium">Your Submission</h3>
               <div>
-                <label htmlFor="content" className="block text-sm font-medium mb-1">
+                <label
+                  htmlFor="content"
+                  className="block text-sm font-medium mb-1"
+                >
                   Response
                 </label>
                 <Textarea
@@ -330,7 +398,9 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Attachment (Optional)</label>
+                <label className="block text-sm font-medium mb-1">
+                  Attachment (Optional)
+                </label>
                 <FileUpload
                   bucket="submissions"
                   path={`assignment-${assignmentId}/${user?.id}`}
@@ -348,8 +418,10 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setFileUrl(null)
-                        setFileName(null)
+                        setFileUrl(null);
+                        setFileName(null);
+                        setFileSize(null);
+                        setFileType(null);
                       }}
                       className="h-8 w-8 p-0"
                     >
@@ -375,7 +447,9 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  <span>{submission ? "Update Submission" : "Submit Assignment"}</span>
+                  <span>
+                    {submission ? "Update Submission" : "Submit Assignment"}
+                  </span>
                 </>
               )}
             </Button>
@@ -383,5 +457,5 @@ export function AssignmentSubmission({ assignmentId }: AssignmentSubmissionProps
         </CardFooter>
       </Card>
     </motion.div>
-  )
+  );
 }
